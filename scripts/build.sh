@@ -15,6 +15,10 @@ docker run --rm --platform linux/amd64 \
   --base-installer-image "ghcr.io/siderolabs/installer-base:${TALOS_VERSION}" \
   --system-extension-image "$KATA_IMAGE" \
   --system-extension-image "$RX888_IMAGE" \
+  --system-extension-image "$I915_IMAGE" \
+  --system-extension-image "$AMDGPU_IMAGE" \
+  --system-extension-image "$INTEL_UCODE_IMAGE" \
+  --system-extension-image "$AMD_UCODE_IMAGE" \
   --embedded-config-path /config/machine.yaml \
   --extra-kernel-arg "usbcore.usbfs_memory_mb=${USBFS_MEMORY_MB}"
 test -s _out/installer-amd64.tar

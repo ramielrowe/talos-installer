@@ -4,10 +4,18 @@ Builds an **amd64, metal installer for Talos v1.14.2** with:
 
 - [Kata Containers](https://github.com/siderolabs/extensions/pkgs/container/kata-containers) 3.32.0, selected from the matching [Talos extension catalog](https://factory.talos.dev/version/v1.14.2/extensions/official).
 - [RX-888](https://github.com/ramielrowe/talos-rx-888) 0.2.0, for firmware loading at boot and hotplug.
+- `i915` and `amdgpu` 20260916-v1.14.2, for Intel and AMD GPU drivers and firmware.
+- `intel-ucode` 20260812 and `amd-ucode` 20260916, for CPU microcode updates.
 
-Both extensions are pinned by digest in `versions.env`. RX-888 currently
+All extensions are pinned by digest in `versions.env`. RX-888 currently
 supports only amd64. The installer includes `usbcore.usbfs_memory_mb=1000`,
 following the RX-888 project's recommendation.
+
+The Intel GPU extension covers the i7-12650H (Alder Lake-H) and i5-1135G7
+(Tiger Lake) with the default i915 driver selection. GPU workloads still need
+appropriate userspace libraries in their containers and Kubernetes device
+allocation. Validate GPU access on the target hardware, including passthrough
+if running GPU workloads inside Kata.
 
 The installer embeds `config/machine.yaml`, which requests the `vhost_net`
 and `vhost_vsock` kernel modules. Embedded configuration does not patch an
@@ -67,7 +75,7 @@ RX-888 hardware and Kata virtualization must be verified on the target nodes.
 
 ## Update versions
 
-Change `TALOS_VERSION` and select Kata's reference and digest from
+Change `TALOS_VERSION` and select all official extension references and digests from
 `https://factory.talos.dev/version/<version>/extensions/official` together.
 Update RX-888's reference and digest when adopting a new extension release.
 Build a new installer for every Talos release; do not reuse an older installer
