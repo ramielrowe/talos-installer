@@ -9,6 +9,11 @@ Both extensions are pinned by digest in `versions.env`. RX-888 currently
 supports only amd64. The installer includes `usbcore.usbfs_memory_mb=1000`,
 following the RX-888 project's recommendation.
 
+The installer embeds `config/machine.yaml`, which requests the `vhost_net`
+and `vhost_vsock` kernel modules. Embedded configuration does not patch an
+existing node's persisted machine configuration during upgrade; include these
+settings in the configuration you apply to existing nodes as well.
+
 ## Build locally
 
 Requires Docker with Linux container support and Make:
@@ -17,7 +22,7 @@ Requires Docker with Linux container support and Make:
 make build
 ```
 
-Output: `_out/installer-amd64.tar` and a copy of the version configuration.
+Output: `_out/installer-amd64.tar`, `_out/versions.env`, and `_out/machine.yaml`.
 The imager pulls published extensions directly; the sibling RX-888 checkout
 is not needed. For a private RX-888 package, export a `GITHUB_TOKEN` with
 package read access (in Actions, grant this repository access to that package).
