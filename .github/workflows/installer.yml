@@ -16,7 +16,18 @@ concurrency:
 
 jobs:
   installer:
+    name: installer (${{ matrix.variant }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # current: modern NVIDIA drivers. legacy: NVIDIA 580 for Maxwell/Pascal/Volta.
+        # tag_suffix keeps the two variants' tags distinct.
+        include:
+          - variant: current
+            tag_suffix: ""
+          - variant: legacy
+            tag_suffix: "-legacy"
     permissions:
       contents: read
       packages: write
@@ -25,12 +36,12 @@ jobs:
       - name: Build installer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: make build
+        run: make build VARIANT=${{ matrix.variant }}
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: talos-installer-amd64
-          path: _out/
+          name: talos-installer-amd64-${{ matrix.variant }}
+          path: _out/${{ matrix.variant }}/
           retention-days: 7
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -43,23 +54,27 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           REPOSITORY: ${{ github.repository }}
+          VARIANT: ${{ matrix.variant }}
+          TAG_SUFFIX: ${{ matrix.tag_suffix }}
         run: |
           set -euo pipefail
           source versions.env
           image="ghcr.io/${REPOSITORY,,}"
           # Load the imager archive; select its image ID independently of its tag.
-          loaded=$(docker load --input _out/installer-amd64.tar)
+          loaded=$(docker load --input "_out/${VARIANT}/installer-amd64.tar")
           source_image=$(printf '%s\n' "$loaded" | sed -n -e 's/^Loaded image: //p' -e 's/^Loaded image ID: //p')
           test -n "$source_image"
           # The commit tag identifies this composition, including extension pins.
-          immutable_tag="${TALOS_VERSION}-${GITHUB_SHA}"
+          # The current variant keeps the original tag form (v1.14.2-<sha>); legacy adds
+          # a suffix (v1.14.2-legacy-<sha>) so the two never share a tag.
+          immutable_tag="${TALOS_VERSION}${TAG_SUFFIX}-${GITHUB_SHA}"
           docker tag "$source_image" "$image:$immutable_tag"
           docker push "$image:$immutable_tag"
           if [[ "$GITHUB_REF" == refs/heads/main ]]; then
-            docker tag "$source_image" "$image:$TALOS_VERSION"
-            docker push "$image:$TALOS_VERSION"
+            docker tag "$source_image" "$image:${TALOS_VERSION}${TAG_SUFFIX}"
+            docker push "$image:${TALOS_VERSION}${TAG_SUFFIX}"
           elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            docker tag "$source_image" "$image:$GITHUB_REF_NAME"
-            docker push "$image:$GITHUB_REF_NAME"
+            docker tag "$source_image" "$image:${GITHUB_REF_NAME}${TAG_SUFFIX}"
+            docker push "$image:${GITHUB_REF_NAME}${TAG_SUFFIX}"
           fi
-          echo "Published \`$image:$immutable_tag\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Published \`$image:$immutable_tag\` ($VARIANT)" >> "$GITHUB_STEP_SUMMARY"
