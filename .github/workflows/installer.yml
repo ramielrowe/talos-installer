@@ -21,13 +21,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # current: modern NVIDIA drivers. legacy: NVIDIA 580 for Maxwell/Pascal/Volta.
-        # tag_suffix keeps the two variants' tags distinct.
+        # base: no NVIDIA (every node without an NVIDIA card). nvidia-open: modern drivers,
+        # Turing and newer. nvidia-legacy: NVIDIA 580 for Maxwell/Pascal/Volta. tag_suffix
+        # keeps the variants' tags distinct; base keeps the original unsuffixed tags.
         include:
-          - variant: current
+          - variant: base
             tag_suffix: ""
-          - variant: legacy
-            tag_suffix: "-legacy"
+          - variant: nvidia-open
+            tag_suffix: "-nvidia-open"
+          - variant: nvidia-legacy
+            tag_suffix: "-nvidia-legacy"
     permissions:
       contents: read
       packages: write
@@ -65,8 +68,8 @@ jobs:
           source_image=$(printf '%s\n' "$loaded" | sed -n -e 's/^Loaded image: //p' -e 's/^Loaded image ID: //p')
           test -n "$source_image"
           # The commit tag identifies this composition, including extension pins.
-          # The current variant keeps the original tag form (v1.14.2-<sha>); legacy adds
-          # a suffix (v1.14.2-legacy-<sha>) so the two never share a tag.
+          # The base variant keeps the original tag form (v1.14.2-<sha>); the NVIDIA variants
+          # add a suffix (v1.14.2-nvidia-legacy-<sha>) so no two variants share a tag.
           immutable_tag="${TALOS_VERSION}${TAG_SUFFIX}-${GITHUB_SHA}"
           docker tag "$source_image" "$image:$immutable_tag"
           docker push "$image:$immutable_tag"

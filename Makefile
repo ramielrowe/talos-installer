@@ -1,14 +1,17 @@
-# VARIANT is "current" (modern NVIDIA drivers, the default) or "legacy" (Maxwell/Pascal/Volta).
-VARIANT ?= current
+# VARIANT is "base" (no NVIDIA, the default), "nvidia-open" or "nvidia-legacy".
+VARIANT ?= base
 
-.PHONY: build build-current build-legacy build-all
+.PHONY: build build-base build-nvidia-open build-nvidia-legacy build-all
 build:
 	bash scripts/build.sh $(VARIANT)
 
-build-current:
-	bash scripts/build.sh current
+build-base:
+	bash scripts/build.sh base
 
-build-legacy:
-	bash scripts/build.sh legacy
+build-nvidia-open:
+	bash scripts/build.sh nvidia-open
 
-build-all: build-current build-legacy
+build-nvidia-legacy:
+	bash scripts/build.sh nvidia-legacy
+
+build-all: build-base build-nvidia-open build-nvidia-legacy

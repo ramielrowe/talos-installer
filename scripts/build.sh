@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 # Build the installer for one variant:
-#   current  modern NVIDIA drivers (open kernel modules, Turing and newer incl. Blackwell)
-#   legacy   NVIDIA 580 proprietary drivers (Maxwell through Ada, e.g. GeForce GTX 960)
-# Usage: scripts/build.sh [current|legacy]   (default: current, or $VARIANT)
+#   base           no NVIDIA. For every node without an NVIDIA card (the default).
+#   nvidia-open    NVIDIA open kernel modules, 595 production branch. Turing and newer,
+#                  including Blackwell. For nodes with such a card.
+#   nvidia-legacy  NVIDIA proprietary kernel modules, 580 lts branch. Maxwell through Ada
+#                  (for example the GeForce GTX 960), but not Blackwell.
+# Usage: scripts/build.sh [base|nvidia-open|nvidia-legacy]   (default: base, or $VARIANT)
 # Set DRY_RUN=1 to print the docker command without running it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source versions.env
 
-VARIANT="${1:-${VARIANT:-current}}"
+VARIANT="${1:-${VARIANT:-base}}"
 case "$VARIANT" in
-  current) nvidia_extensions=("$NVIDIA_OPEN_KMOD_IMAGE" "$NVIDIA_TOOLKIT_IMAGE") ;;
-  legacy)  nvidia_extensions=("$NVIDIA_LEGACY_KMOD_IMAGE" "$NVIDIA_LEGACY_TOOLKIT_IMAGE") ;;
-  *) echo "unknown variant '$VARIANT' (expected: current, legacy)" >&2; exit 2 ;;
+  base)          nvidia_extensions=() ;;
+  nvidia-open)   nvidia_extensions=("$NVIDIA_OPEN_KMOD_IMAGE" "$NVIDIA_TOOLKIT_IMAGE") ;;
+  nvidia-legacy) nvidia_extensions=("$NVIDIA_LEGACY_KMOD_IMAGE" "$NVIDIA_LEGACY_TOOLKIT_IMAGE") ;;
+  *) echo "unknown variant '$VARIANT' (expected: base, nvidia-open, nvidia-legacy)" >&2; exit 2 ;;
 esac
 
 extension_args=()
+# The ${arr[@]+...} form keeps an empty array valid under `set -u` on older bash (macOS).
 for image in \
   "$KATA_IMAGE" \
   "$RX888_IMAGE" \
@@ -23,7 +28,7 @@ for image in \
   "$AMDGPU_IMAGE" \
   "$INTEL_UCODE_IMAGE" \
   "$AMD_UCODE_IMAGE" \
-  "${nvidia_extensions[@]}"; do
+  ${nvidia_extensions[@]+"${nvidia_extensions[@]}"}; do
   extension_args+=(--system-extension-image "$image")
 done
 
